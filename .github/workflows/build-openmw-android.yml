@@ -78,6 +78,29 @@ jobs:
           echo "$SHA  $LIB" > source/buildscripts/openmw-051-patch39-libopenmw.sha256
           echo "Fresh libopenmw.so SHA-256: $SHA"
 
+      - name: Restore patched runtime shaders (missing from git)
+        run: |
+          # verifyOpenMwPayload also checks the CONTENT of the engine's
+          # runtime shaders for the maintainer's Android patches:
+          # water.vert/frag (projective water reflection UVs + WetWorld
+          # water mask), shadows_vertex/fragment.glsl (grazing shadow fix
+          # + GLES2 PCF), fullscreen_tri/shadowcasting/debug verts
+          # (uniform-initializer cleanup). build.sh copies the UNPATCHED
+          # upstream shaders from the OpenMW source tree, so those gates
+          # fail. The maintainer applies his patches on his own machine
+          # and never commits them; his release APK of the same version
+          # carries the patched files. Restore the whole shaders tree
+          # from it — the engine binary stays built from source above,
+          # exactly like the OMWFX restore.
+          cd source/app/src/main/assets
+          unzip -o /tmp/openmw-release.apk "assets/libopenmw/resources/shaders/*"
+          test -f libopenmw/resources/shaders/compatibility/water.vert
+          test -f libopenmw/resources/shaders/compatibility/water.frag
+          grep -q 'OPENMW_ANDROID_051_WATER_PROJECTIVE_SCREEN_COORDS' libopenmw/resources/shaders/compatibility/water.vert
+          grep -q 'OPENMW_ANDROID_051_WETWORLD_WATER_MASK' libopenmw/resources/shaders/compatibility/water.frag
+          grep -q 'OPENMW_ANDROID_051_GLES2_TENT_PCF' libopenmw/resources/shaders/compatibility/shadows_fragment.glsl
+          echo "Patched shaders restored: $(find libopenmw/resources/shaders -type f | wc -l) files"
+
       - name: Build APK (mainlineDebug)
         working-directory: source
         run: |
