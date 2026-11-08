@@ -46,6 +46,21 @@ jobs:
           chmod +x build.sh include/*.sh
           ./build.sh --arch arm64 --jobs 4 --release
 
+      - name: Restore OMWFX shader payload (missing from git)
+        run: |
+          # The 5 android_omwfx shader files are gitignored upstream
+          # (assets/ is in .gitignore) and are not produced by build.sh,
+          # so the Gradle verifyOpenMwPayload check fails without them.
+          # They are the maintainer's own open-source shaders from the
+          # 0.51.0-14 release of the same version; the engine and all
+          # other payload files are built from source above.
+          mkdir -p source/app/src/main/assets/android_omwfx
+          curl -sSL -o /tmp/openmw-release.apk https://github.com/Andiweli/OpenMW-Android/releases/download/0.51.0-14/OpenMW.0.51-14.apk
+          cd source/app/src/main/assets/android_omwfx
+          unzip -o -j /tmp/openmw-release.apk "assets/android_omwfx/*.omwfx"
+          test "$(ls *.omwfx | wc -l)" -eq 5
+          ls -la
+
       - name: Build APK (mainlineDebug)
         working-directory: source
         run: |
