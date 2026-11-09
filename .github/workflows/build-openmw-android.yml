@@ -94,11 +94,17 @@ jobs:
           # exactly like the OMWFX restore.
           cd source/app/src/main/assets
           unzip -o /tmp/openmw-release.apk "assets/libopenmw/resources/shaders/*"
+          # Plain unzip preserves the APK's assets/ prefix, so the patched
+          # tree lands in assets/libopenmw/... — copy it over the unpatched
+          # tree build.sh left at libopenmw/... (the location
+          # verifyOpenMwPayload reads), then drop the nested copy.
+          cp -rf assets/libopenmw/resources/shaders/. libopenmw/resources/shaders/
+          rm -rf assets/libopenmw
           test -f libopenmw/resources/shaders/compatibility/water.vert
           test -f libopenmw/resources/shaders/compatibility/water.frag
-          grep -q 'OPENMW_ANDROID_051_WATER_PROJECTIVE_SCREEN_COORDS' libopenmw/resources/shaders/compatibility/water.vert
-          grep -q 'OPENMW_ANDROID_051_WETWORLD_WATER_MASK' libopenmw/resources/shaders/compatibility/water.frag
-          grep -q 'OPENMW_ANDROID_051_GLES2_TENT_PCF' libopenmw/resources/shaders/compatibility/shadows_fragment.glsl
+          grep -q 'OPENMW_ANDROID_051_WATER_PROJECTIVE_SCREEN_COORDS' libopenmw/resources/shaders/compatibility/water.vert || { echo "MISSING marker in water.vert"; exit 1; }
+          grep -q 'OPENMW_ANDROID_051_WETWORLD_WATER_MASK' libopenmw/resources/shaders/compatibility/water.frag || { echo "MISSING marker in water.frag"; exit 1; }
+          grep -q 'OPENMW_ANDROID_051_GLES2_TENT_PCF' libopenmw/resources/shaders/compatibility/shadows_fragment.glsl || { echo "MISSING marker in shadows_fragment.glsl"; exit 1; }
           echo "Patched shaders restored: $(find libopenmw/resources/shaders -type f | wc -l) files"
 
       - name: Build APK (mainlineDebug)
